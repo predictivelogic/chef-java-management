@@ -17,6 +17,20 @@
 # limitations under the License.
 #
 
+def make_certfile(certalias, options)
+  certificate_filename = "#{node['java']['java_home']}/jre/lib/security/truststore-#{certalias}.pem"
+
+  file certificate_filename do
+    action :create
+    owner 'root'
+    group 'root'
+    mode 0644
+    content options['certificate']
+  end
+
+  certificate_filename
+end
+
 begin
   truststore_data_bag = data_bag(node['java-management']['truststore']['data_bag'])
 rescue
@@ -27,18 +41,11 @@ end
 
 truststore_data_bag.each do |certalias|
   options = data_bag_item(node['java-management']['truststore']['data_bag'], certalias)
-  certificate_file = "#{node['java']['java_home']}/jre/lib/security/truststore-#{certalias}.pem"
 
-  file certificate_file do
-    action :create
-    owner 'root'
-    group 'root'
-    mode 0644
-    content options['certificate']
-  end
+  certificate_filename = make_certfile(certalias, options)
 
   java_management_truststore_certificate certalias do
-    file certificate_file
+    file certificate_filename
     keystore options['keystore'] if options['keystore']
     keytool options['keytool'] if options['keytool']
     storepass options['storepass'] if options['storepass']
@@ -46,14 +53,17 @@ truststore_data_bag.each do |certalias|
 end
 
 node['java-management']['truststore']['certificate_files'].each_pair do |certalias, options|
+  if options.is_a?(String)
+    certificate_filename = options
+  else
+    # If cert filename not provided, assume that certificate text is provided in options['certificate'].
+    certificate_filename = options['file'] || make_certfile(certalias, options)
+  end
+
   java_management_truststore_certificate certalias do
-    if options.is_a?(String)
-      file options
-    else
-      file options['file']
-      keystore options['keystore'] if options['keystore']
-      keytool options['keytool'] if options['keytool']
-      storepass options['storepass'] if options['storepass']
-    end
+    file certificate_filename
+    keystore options['keystore'] if options['keystore']
+    keytool options['keytool'] if options['keytool']
+    storepass options['storepass'] if options['storepass']
   end
 end

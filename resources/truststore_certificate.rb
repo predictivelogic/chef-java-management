@@ -20,7 +20,8 @@
 actions :import
 
 attribute :alias, :kind_of => String, :name_attribute => true
-attribute :file, :kind_of => String, :required => true
+attribute :file, :kind_of => String, :default => nil
+attribute :certificate, :kind_of => String, :default => nil
 attribute :keystore, :kind_of => String, :default => nil
 attribute :keytool, :kind_of => String, :default => nil
 attribute :storepass, :kind_of => String, :default => nil
